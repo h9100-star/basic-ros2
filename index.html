@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROS2 Turtlesim Training</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Segoe UI,sans-serif;
+}
+
+body{
+    background:#0f172a;
+    color:white;
+    height:100vh;
+    overflow:hidden;
+}
+
+.header{
+    background:#1e293b;
+    padding:15px 25px;
+}
+
+.header h1{
+    font-size:24px;
+    margin-bottom:10px;
+}
+
+.progress{
+    width:100%;
+    height:8px;
+    background:#334155;
+    border-radius:20px;
+    overflow:hidden;
+}
+
+.progress-fill{
+    height:100%;
+    width:0%;
+    background:#38bdf8;
+    transition:.4s;
+}
+
+.container{
+    display:flex;
+    height:calc(100vh - 80px);
+}
+
+.media{
+    flex:2;
+    background:black;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.media img,
+.media video{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+}
+
+.panel{
+    flex:1;
+    background:#111827;
+    padding:25px;
+    overflow-y:auto;
+}
+
+.lesson-title{
+    font-size:28px;
+    margin-bottom:15px;
+}
+
+.instruction{
+    background:#1e293b;
+    padding:15px;
+    border-radius:10px;
+    margin-bottom:20px;
+    line-height:1.5;
+}
+
+.command-box{
+    background:#020617;
+    border:1px solid #334155;
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:15px;
+    font-family:monospace;
+    word-break:break-word;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:8px;
+    margin-bottom:15px;
+    font-size:16px;
+}
+
+.actions{
+    display:flex;
+    gap:10px;
+}
+
+button{
+    flex:1;
+    padding:12px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.submit{
+    background:#0284c7;
+    color:white;
+}
+
+.prev{
+    background:#475569;
+    color:white;
+}
+
+.next{
+    background:#16a34a;
+    color:white;
+}
+
+.status{
+    margin-top:20px;
+    padding:12px;
+    border-radius:8px;
+    background:#1e293b;
+    min-height:60px;
+}
+
+.score{
+    margin-top:20px;
+    font-weight:bold;
+}
+
+.complete{
+    width:100%;
+    text-align:center;
+    padding-top:120px;
+}
+
+.complete h1{
+    color:#38bdf8;
+    margin-bottom:20px;
+}
+
+@media(max-width:900px){
+
+    .container{
+        flex-direction:column;
+    }
+
+    .media{
+        height:45%;
+    }
+
+    .panel{
+        height:55%;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>ROS2 Turtlesim Training</h1>
+
+    <div class="progress">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="media" id="media"></div>
+
+    <div class="panel">
+
+        <div class="lesson-title" id="title"></div>
+
+        <div class="instruction" id="instruction"></div>
+
+        <div class="command-box" id="expectedCommand"></div>
+
+        <input
+            id="answerInput"
+            placeholder="Type the command exactly as shown..."
+        >
+
+        <div class="actions">
+            <button class="prev" onclick="previousLesson()">Previous</button>
+            <button class="submit" onclick="checkAnswer()">Submit</button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="score" id="score"></div>
+
+    </div>
+
+</div>
+
+<script>
+
+const lessons = [
+
+{
+title:"Lesson 1 - Launch Node",
+type:"image",
+src:"images/lesson1.png",
+instruction:"A node is an executable process in ROS2. This command launches the turtlesim node.",
+answer:"ros2 run turtlesim turtlesim_node"
+},
+
+{
+title:"Lesson 2 - List Topics",
+type:"image",
+src:"images/lesson2.png",
+instruction:"Topics are communication channels between nodes. This command lists all active topics.",
+answer:"ros2 topic list"
+},
+
+{
+title:"Lesson 3 - Topic Type",
+type:"image",
+src:"images/lesson3.png",
+instruction:"now we know what topics exsist, now lets publish on cmd_vel but we need to know its data format so the following command",
+answer:"ros2 topic type /turtle1/cmd_vel"
+},
+
+{
+title:"Lesson 4 - Interface Structure",
+type:"image",
+src:"images/lesson4.png",
+instruction:"now lets see how the data is structured",
+answer:"ros2 interface show geometry_msgs/msg/Twist"
+},
+
+{
+title:"Lesson 5 - Publish Topic",
+type:"image",
+src:"images/lesson5.png",
+instruction:"Topics allow data publishing. Publish velocity commands to move the turtle.",
+answer:'ros2 topic pub /turtle1/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 2.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 1.0}}"'
+},
+
+{
+title:"Lesson 6 - services",
+type:"image",
+src:"images/lesson6.png",
+instruction:"lets explore service , list them all",
+answer:"ros2 service list"
+},
+
+{
+title:"Lesson 7 - service type",
+type:"image",
+src:"images/lesson7.png",
+instruction:"lets see service type of /clear so we can call it",
+answer:"ros2 service type /clear"
+},
+
+{
+title:"Lesson 8 - calling /clear",
+type:"image",
+src:"images/lesson8.png",
+instruction:"lets call /clear ros2 service call /clear @type@ data",
+answer:'ros2 service call /clear std_srvs/srv/Empty "{}" '
+},
+
+{
+title:"Lesson 9 - action",
+type:"image",
+src:"images/lesson9.png",
+instruction:"action list , -t tells type ",
+answer:"ros2 action list -t"
+},
+
+{
+title:"Lesson 10 - info of action",
+type:"image",
+src:"images/lesson10.png",
+instruction:"info ,understand the info",
+answer:"ros2 action info /turtle1/rotate_absolute"
+},
+
+{
+title:"Lesson 11 - lets send a goal",
+type:"image",
+src:"images/lesson11.png",
+instruction:"ros2 action send_goal @action@ @type@ data -f for feedabck",
+answer:'ros2 action send_goal /turtle1/rotate_absolute turtlesim/action/RotateAbsolute "{theta: 1.57}" -f'
+},
+
+{
+title:"Lesson 12 - rqt",
+type:"image",
+src:"images/lesson12.png",
+instruction:"there are so more like rqt and -r and parameters etc use ros docs ",
+answer:"rqt"
+},
+
+{
+title:"Lesson 13 - ",
+type:"image",
+src:"images/lesson13.png",
+instruction:"rqt_graph",
+answer:"rqt_graph"
+},
+
+
+];
+
+let currentLesson = 0;
+let score = 0;
+
+function normalize(text){
+    return text
+        .trim()
+        .replace(/\s+/g," ")
+        .toLowerCase();
+}
+
+function loadLesson(){
+
+    const lesson = lessons[currentLesson];
+
+    document.getElementById("title").textContent =
+        lesson.title;
+
+    document.getElementById("instruction").textContent =
+        lesson.instruction;
+
+    document.getElementById("expectedCommand").textContent =
+        lesson.answer;
+
+    document.getElementById("answerInput").value = "";
+
+    const media = document.getElementById("media");
+
+    if(lesson.type === "image"){
+
+        media.innerHTML =
+        `<img src="${lesson.src}" alt="${lesson.title}">`;
+
+    }else{
+
+        media.innerHTML =
+        `<video controls autoplay>
+            <source src="${lesson.src}">
+        </video>`;
+    }
+
+    document.getElementById("progressFill").style.width =
+        ((currentLesson+1)/lessons.length)*100 + "%";
+
+    document.getElementById("score").textContent =
+        `Score: ${score}`;
+}
+
+function checkAnswer(){
+
+    const lesson = lessons[currentLesson];
+
+    const answer =
+        normalize(document.getElementById("answerInput").value);
+
+    if(answer === normalize(lesson.answer)){
+
+        score++;
+
+        document.getElementById("status").innerHTML =
+            "✅ Correct";
+
+        setTimeout(()=>{
+
+            if(currentLesson < lessons.length-1){
+
+                currentLesson++;
+                loadLesson();
+
+            }else{
+
+                showCompletion();
+            }
+
+        },800);
+
+    }else{
+
+        document.getElementById("status").innerHTML =
+            "❌ Incorrect. Try again.";
+    }
+}
+
+function previousLesson(){
+
+    if(currentLesson > 0){
+
+        currentLesson--;
+        loadLesson();
+    }
+}
+
+function showCompletion(){
+
+    document.querySelector(".container").innerHTML = `
+        <div class="complete">
+            <h1>Training Complete</h1>
+            <h2>Final Score: ${score}/${lessons.length}</h2>
+            <br>
+            <button class="next" onclick="location.reload()">
+                Restart Training
+            </button>
+        </div>
+    `;
+}
+
+document
+.getElementById("answerInput")
+.addEventListener("keypress",(e)=>{
+
+    if(e.key === "Enter"){
+        checkAnswer();
+    }
+});
+
+loadLesson();
+
+</script>
+
+</body>
+</html>
